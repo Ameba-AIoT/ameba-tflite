@@ -19,11 +19,12 @@ limitations under the License.
 
 #include <vector>
 
-#include "tensorflow/core/util/stats_calculator.h"
-#include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/interpreter.h"
-#include "tensorflow/lite/kernels/register.h"
-#include "tensorflow/lite/model.h"
+#include "xla/tsl/util/stats_calculator.h"
+#include "tensorflow/lite/core/c/common.h"
+#include "tensorflow/lite/core/interpreter.h"
+#include "tensorflow/lite/core/kernels/register.h"
+#include "tensorflow/lite/core/model.h"
+#include "tensorflow/lite/model_builder.h"
 #include "tensorflow/lite/tools/evaluation/evaluation_delegate_provider.h"
 #include "tensorflow/lite/tools/evaluation/evaluation_stage.h"
 #include "tensorflow/lite/tools/evaluation/proto/evaluation_config.pb.h"
@@ -58,6 +59,9 @@ class TfliteInferenceStage : public EvaluationStage {
     inputs_ = &raw_input_ptrs;
   }
 
+  // Resize input tensors with given shapes.
+  TfLiteStatus ResizeInputs(const std::vector<std::vector<int>>& shapes);
+
   // Applies provided delegate to the underlying TFLite Interpreter.
   TfLiteStatus ApplyCustomDelegate(Interpreter::TfLiteDelegatePtr delegate);
 
@@ -83,7 +87,7 @@ class TfliteInferenceStage : public EvaluationStage {
   const std::vector<void*>* inputs_ = nullptr;
   std::vector<void*> outputs_;
 
-  tensorflow::Stat<int64_t> latency_stats_;
+  tsl::Stat<int64_t> latency_stats_;
 };
 
 }  // namespace evaluation

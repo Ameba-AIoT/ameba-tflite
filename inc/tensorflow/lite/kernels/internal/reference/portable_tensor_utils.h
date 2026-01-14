@@ -15,9 +15,6 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PORTABLE_TENSOR_UTILS_H_
 #define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_PORTABLE_TENSOR_UTILS_H_
 
-// TODO(ghodrat): Remove this header file and the dependency to internal data
-// structure.
-#include "tensorflow/lite/c/builtin_op_data.h"
 #include "tensorflow/lite/kernels/internal/reference/portable_tensor_utils_impl.h"
 
 #if defined(_MSC_VER)
@@ -32,7 +29,7 @@ bool IsZeroVector(const float* vector, int v_size) {
   return PortableIsZeroVector(vector, v_size);
 }
 
-// Check if all entries of a vector are zero for int8.
+// Check if all entries of a vector are zero for int8_t.
 bool IsZeroVector(const int8_t* vector, int v_size) {
   return PortableIsZeroVector(vector, v_size);
 }
@@ -114,13 +111,31 @@ void SparseMatrixBatchVectorMultiplyAccumulate(
       matrix, ledger, m_rows, m_cols, vector, n_batch, result);
 }
 
+void SparseMatrixBatchVectorMultiplyAccumulate1x16(
+    const int8_t* __restrict__ matrix, const int32_t* __restrict__ segments,
+    const int32_t* __restrict__ indices, int m_rows, int m_cols,
+    const int8_t* __restrict__ vector, const int32_t* __restrict__ bias_vector,
+    int n_batch, const int32_t input_offset, const int32_t output_multiplier,
+    const int32_t output_shift, const int32_t* per_channel_scale,
+    const int32_t* per_channel_shift, const int32_t output_offset,
+    const int32_t output_activation_min, const int32_t output_activation_max,
+
+    int8_t* __restrict__ result) {
+  PortableSparseMatrixBatchVectorMultiplyAccumulate1x16(
+      matrix, segments, indices, m_rows, m_cols, vector, bias_vector, n_batch,
+      input_offset, output_multiplier, output_shift, per_channel_scale,
+      per_channel_shift, output_offset, output_activation_min,
+      output_activation_max, result);
+}
+
 void SparseMatrixBatchVectorMultiplyAccumulate(
     const int8_t* __restrict__ matrix, const uint8_t* ledger, const int m_rows,
     const int m_cols, const int8_t* __restrict__ vectors,
-    const float* scaling_factors, int n_batch, float* __restrict__ result) {
+    const float* scaling_factors, int n_batch, float* __restrict__ result,
+    const float* per_channel_scale) {
   PortableSparseMatrixBatchVectorMultiplyAccumulate(
-      matrix, ledger, m_rows, m_cols, vectors, scaling_factors, n_batch,
-      result);
+      matrix, ledger, m_rows, m_cols, vectors, scaling_factors, n_batch, result,
+      per_channel_scale);
 }
 
 void MatrixBatchVectorMultiplyAccumulate(
@@ -230,14 +245,19 @@ void CwiseAdd(const int16_t* input_1, const int16_t* input_2, int n_batch,
   PortableCwiseAdd(input_1, input_2, n_batch, n_input, output);
 }
 
-void CwiseClipping(int16_t* input, const int16_t clipping_value,
-                   int32_t n_batch, int32_t n_input) {
-  PortableCwiseClipping(input, clipping_value, n_batch, n_input);
+void CwiseClipping(float* vector, const int v_size,
+                   const float clipping_value) {
+  PortableCwiseClipping(vector, v_size, clipping_value);
 }
 
-void CwiseClipping(int8_t* input, const int8_t clipping_value, int32_t n_batch,
-                   int32_t n_input) {
-  PortableCwiseClipping(input, clipping_value, n_batch, n_input);
+void CwiseClipping(int16_t* vector, const int v_size,
+                   const int16_t clipping_value) {
+  PortableCwiseClipping(vector, v_size, clipping_value);
+}
+
+void CwiseClipping(int8_t* vector, const int v_size,
+                   const int8_t clipping_value) {
+  PortableCwiseClipping(vector, v_size, clipping_value);
 }
 
 void VectorBatchVectorCwiseProductAccumulate(const int16_t* vector, int v_size,
@@ -260,11 +280,6 @@ void BatchVectorBatchVectorDotProduct(const int16_t* vector1,
                                            result);
 }
 
-void VectorBatchVectorAdd(const float* vector, int v_size, int n_batch,
-                          float* batch_vector) {
-  PortableVectorBatchVectorAdd(vector, v_size, n_batch, batch_vector);
-}
-
 void Sub1Vector(const float* vector, int v_size, float* result) {
   PortableSub1Vector(vector, v_size, result);
 }
@@ -277,11 +292,6 @@ void Sub1Vector(const int16_t* vector, int v_size, int16_t* result) {
 void VectorScalarMultiply(const int8_t* vector, int v_size, float scale,
                           float* result) {
   PortableVectorScalarMultiply(vector, v_size, scale, result);
-}
-
-void ClipVector(const float* vector, int v_size, float abs_limit,
-                float* result) {
-  PortableClipVector(vector, v_size, abs_limit, result);
 }
 
 void ReductionSumVector(const float* input_vector, float* output_vector,
@@ -307,14 +317,14 @@ void MeanStddevNormalization(const float* input_vector, float* output_vector,
   PortableMeanStddevNormalization(input_vector, output_vector, v_size, n_batch);
 }
 
-void TwoGateSaturationgAdd(const int8_t* input, int8_t input_zp,
-                           const int8_t* recurrent, int8_t recurrent_zp,
-                           int32_t input_effective_scale_a,
-                           int32_t input_effective_scale_b,
-                           int32_t recurrent_effective_scale_a,
-                           int32_t recurrent_effective_scale_b, int32_t n_batch,
-                           int32_t n_cell, int16_t* output) {
-  PortableTwoGateSaturationgAdd(
+void TwoGateSaturatingAdd(const int8_t* input, int8_t input_zp,
+                          const int8_t* recurrent, int8_t recurrent_zp,
+                          int32_t input_effective_scale_a,
+                          int32_t input_effective_scale_b,
+                          int32_t recurrent_effective_scale_a,
+                          int32_t recurrent_effective_scale_b, int32_t n_batch,
+                          int32_t n_cell, int16_t* output) {
+  PortableTwoGateSaturatingAdd(
       input, input_zp, recurrent, recurrent_zp, input_effective_scale_a,
       input_effective_scale_b, recurrent_effective_scale_a,
       recurrent_effective_scale_b, n_batch, n_cell, output);

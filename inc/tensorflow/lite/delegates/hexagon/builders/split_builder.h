@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <vector>
 
+#include "tensorflow/lite/c/c_api_types.h"
+#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/delegates/hexagon/builders/op_builder.h"
 
 namespace tflite {
@@ -38,8 +40,6 @@ class SplitOpBuilder : public OpBuilder {
 
  private:
   std::vector<TensorID> node_outputs_;
-  float input_min_;
-  float input_max_;
 };
 
 }  // namespace hexagon
