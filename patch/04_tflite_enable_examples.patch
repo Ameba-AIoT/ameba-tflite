@@ -1,0 +1,97 @@
+diff --git a/tensorflow/lite/CMakeLists.txt b/tensorflow/lite/CMakeLists.txt
+index bce9627fbd3..8170c81bfd2 100644
+--- a/tensorflow/lite/CMakeLists.txt
++++ b/tensorflow/lite/CMakeLists.txt
+@@ -632,6 +632,41 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "iOS")
+   set_source_files_properties(${TFLITE_SOURCE_DIR}/profiling/signpost_profiler.mm PROPERTIES COMPILE_FLAGS -fno-objc-arc)
+ endif()
+ 
++# Add the generated headers directory. Required for maintaining the
++# tensorflow/lite directory structure for generated headers.
++set(TFLITE_GENERATED_HEADERS_DIR ${CMAKE_BINARY_DIR}/tensorflow/lite)
++
++# Add the profiling proto directory.
++add_subdirectory(${TFLITE_SOURCE_DIR}/profiling/proto)
++
++# Add the tf example directory.
++add_subdirectory(${TF_SOURCE_DIR}/core/example ${CMAKE_BINARY_DIR}/example_proto_generated)
++
++# The benchmark tool.
++add_subdirectory(${TFLITE_SOURCE_DIR}/tools/benchmark)
++
++# The label_image example.
++add_subdirectory(${TFLITE_SOURCE_DIR}/examples/label_image)
++
++set(TFLITE_BENCHMARK_DEP_SRCS
++  ${TFLITE_SOURCE_DIR}/profiling/memory_info.cc
++  ${TFLITE_SOURCE_DIR}/profiling/memory_usage_monitor.cc
++  ${TFLITE_SOURCE_DIR}/profiling/model_runtime_info.cc
++  ${TFLITE_SOURCE_DIR}/profiling/profile_buffer.cc
++  ${TFLITE_SOURCE_DIR}/profiling/profile_summarizer.cc
++  ${TFLITE_SOURCE_DIR}/profiling/profile_summary_formatter.cc
++  ${TFLITE_SOURCE_DIR}/profiling/root_profiler.cc
++  ${TFLITE_SOURCE_DIR}/profiling/time.cc
++  ${TFLITE_SOURCE_DIR}/tools/command_line_flags.cc
++  ${TFLITE_SOURCE_DIR}/tools/delegates/default_execution_provider.cc
++  ${TFLITE_SOURCE_DIR}/tools/delegates/delegate_provider.cc
++  ${TFLITE_SOURCE_DIR}/tools/evaluation/utils.cc
++  ${TFLITE_SOURCE_DIR}/tools/model_loader.cc
++  ${TFLITE_SOURCE_DIR}/tools/tool_params.cc
++  ${TFLITE_SOURCE_DIR}/tools/utils.cc
++  ${XLA_SOURCE_DIR}/xla/tsl/util/stats_calculator.cc
++)
++
+ # TFLite library
+ set(_ALL_TFLITE_SRCS
+   ${TFLITE_CORE_ACCELERATION_SRCS}
+@@ -689,6 +724,7 @@ set(_ALL_TFLITE_SRCS
+   ${TF_SOURCE_DIR}/compiler/mlir/lite/allocation.cc
+   ${TF_SOURCE_DIR}/compiler/mlir/lite/mmap_allocation.cc
+   ${TF_SOURCE_DIR}/compiler/mlir/lite/mmap_allocation_disabled.cc
++  ${TFLITE_BENCHMARK_DEP_SRCS}
+ )
+ 
+ if(_TFLITE_ENABLE_MMAP)
+@@ -704,6 +740,7 @@ set(_ALL_TFLITE_HDRS ${_ALL_TFLITE_SRCS})
+ list(FILTER _ALL_TFLITE_HDRS INCLUDE REGEX ".*\\.h$")
+ target_include_directories(tensorflow-lite
+   PUBLIC $<BUILD_INTERFACE:${TENSORFLOW_SOURCE_DIR}> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
++  ${CMAKE_BINARY_DIR}
+ )
+ target_link_libraries(tensorflow-lite
+   PUBLIC
+@@ -722,6 +759,11 @@ target_link_libraries(tensorflow-lite
+     ruy::ruy
+     ${CMAKE_DL_LIBS}
+     ${TFLITE_TARGET_DEPENDENCIES}
++    profiling_info_proto
++    feature_proto
++    example_proto
++    model_runtime_info_proto
++    protobuf::libprotobuf
+ )
+ 
+ if (NOT BUILD_SHARED_LIBS)
+@@ -779,22 +821,6 @@ if(TFLITE_KERNEL_TEST)
+   add_subdirectory(${TFLITE_SOURCE_DIR}/kernels)
+ endif()
+ 
+-# Add the generated headers directory. Required for maintaining the
+-# tensorflow/lite directory structure for generated headers.
+-set(TFLITE_GENERATED_HEADERS_DIR ${CMAKE_BINARY_DIR}/tensorflow/lite)
+-
+-# Add the profiling proto directory.
+-add_subdirectory(${TFLITE_SOURCE_DIR}/profiling/proto)
+-
+-# Add the tf example directory.
+-add_subdirectory(${TF_SOURCE_DIR}/core/example ${CMAKE_BINARY_DIR}/example_proto_generated)
+-
+-# The benchmark tool.
+-add_subdirectory(${TFLITE_SOURCE_DIR}/tools/benchmark)
+-
+-# The label_image example.
+-add_subdirectory(${TFLITE_SOURCE_DIR}/examples/label_image)
+-
+ # Python interpreter wrapper.
+ add_library(_pywrap_tensorflow_interpreter_wrapper SHARED EXCLUDE_FROM_ALL
+   ${TFLITE_SOURCE_DIR}/python/interpreter_wrapper/interpreter_wrapper.cc

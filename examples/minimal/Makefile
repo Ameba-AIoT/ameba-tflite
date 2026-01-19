@@ -1,0 +1,1 @@
+EXAMPLE_SRC += $(TFLITE_DIR)/examples/minimal/minimal.cc
