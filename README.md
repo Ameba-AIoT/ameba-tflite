@@ -6,6 +6,8 @@ TensorFlow Lite (LiteRT) is Google's on-device framework for high-performance ML
 
 This repository is a version of the [TensorFlow Lite library](https://ai.google.dev/edge/litert) for Realtek Ameba SoCs.
 
+Documentation: [ameba-tflite](https://aiot.realmcu.com/en/latest/linux/ai/tfl/index.html)
+
 ## Getting Started
 
 ### Build Tensorflow Lite Example
